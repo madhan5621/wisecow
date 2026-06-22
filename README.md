@@ -1,28 +1,80 @@
-# Cow wisdom web server
+# Wisecow - DevOps Trainee Assessment
+Accuknox DevOps Trainee Practical Assessment Submission
 
-## Prerequisites
+## Problem Statement 1: Containerization and Kubernetes Deployment
 
-```
-sudo apt install fortune-mod cowsay -y
-```
+### Overview
+Containerized the Wisecow application and deployed it to a Kubernetes 
+cluster with an automated CI/CD pipeline and TLS support.
 
-## How to use?
+### How to Run Locally (Docker)
+1. Build the image:
+   docker build -t wisecow:v1 .
 
-1. Run `./wisecow.sh`
-2. Point the browser to server port (default 4499)
+2. Run the container:
+   docker run -p 4499:4499 wisecow:v1
 
-## What to expect?
-![wisecow](https://github.com/nyrahul/wisecow/assets/9133227/8d6bfde3-4a5a-480e-8d55-3fef60300d98)
+3. Test it:
+   curl http://localhost:4499
 
-# Problem Statement
-Deploy the wisecow application as a k8s app
+### Kubernetes Deployment
+1. Apply manifests:
+   kubectl apply -f k8s/deployment.yaml
+   kubectl apply -f k8s/service.yaml
 
-## Requirement
-1. Create Dockerfile for the image and corresponding k8s manifest to deploy in k8s env. The wisecow service should be exposed as k8s service.
-2. Github action for creating new image when changes are made to this repo
-3. [Challenge goal]: Enable secure TLS communication for the wisecow app.
+2. Access the app:
+   kubectl port-forward service/wisecow-service 8080:4499
+   curl http://localhost:8080
 
-## Expected Artifacts
-1. Github repo containing the app with corresponding dockerfile, k8s manifest, any other artifacts needed.
-2. Github repo with corresponding github action.
-3. Github repo should be kept private and the access should be enabled for following github IDs: nyrahul
+### TLS Setup
+Configured TLS using NGINX Ingress Controller and cert-manager 
+with a self-signed certificate (appropriate for local clusters 
+without a public domain).
+
+To apply:
+   kubectl apply -f k8s/selfsigned-issuer.yaml
+   kubectl apply -f k8s/ingress.yaml
+   kubectl get certificate
+
+Certificate confirmed issued — kubectl get certificate shows READY: True.
+
+### CI/CD Pipeline
+GitHub Actions workflow (.github/workflows/ci-cd.yaml) does the following
+automatically on every push to main:
+
+- Job 1 (build-and-push):
+  Builds the Docker image and pushes it to GitHub Container Registry (ghcr.io)
+
+- Job 2 (deploy):
+  Spins up a temporary Kind Kubernetes cluster, applies the manifests,
+  updates the deployment with the new image, and verifies the pod is running.
+
+Both jobs confirmed passing (green checkmark in the Actions tab).
+
+---
+
+## Problem Statement 2: Automation Scripts
+
+### Script 1: Application Health Checker
+Location: scripts/app_health_checker.sh
+
+Checks whether a web application is up or down by sending an HTTP request
+and checking the response status code.
+- UP = HTTP 2xx or 3xx response
+- DOWN = HTTP 4xx, 5xx, or no response
+
+Usage:
+   sh scripts/app_health_checker.sh <URL>
+
+Example:
+   sh scripts/app_health_checker.sh https://google.com
+
+Example output:
+   ---- Application Health Check ----
+   UP - https://google.com (HTTP 200)
+   ---- Check Complete ----
+
+### Script 2: Automated Backup Solution
+Location: scripts/automated_backup.sh
+
+Backs up a sp
